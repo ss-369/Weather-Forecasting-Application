@@ -75,55 +75,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(cachedData);
       }
       
-      // Get coordinates for the city
-      const geoResponse = await axios.get(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(city)}&limit=1&appid=${OPENWEATHER_API_KEY}`
+      // Get current weather data (free tier API)
+      const currentResponse = await axios.get(
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&appid=${OPENWEATHER_API_KEY}&units=metric`
       );
       
-      if (!geoResponse.data || geoResponse.data.length === 0) {
+      if (!currentResponse.data) {
         return res.status(404).json({ message: "City not found" });
       }
       
-      const { lat, lon, name: cityName, country } = geoResponse.data[0];
+      const { name: cityName, coord, sys, main, wind, weather, visibility, dt, clouds, timezone } = currentResponse.data;
       
-      // Get weather data using One Call API
-      const weatherResponse = await axios.get(
-        `https://api.openweathermap.org/data/3.0/onecall?lat=${lat}&lon=${lon}&exclude=minutely&appid=${OPENWEATHER_API_KEY}&units=metric`
+      // Get forecast data separately (free tier API)
+      const forecastResponse = await axios.get(
+        `https://api.openweathermap.org/data/2.5/forecast?q=${encodeURIComponent(city)}&appid=${OPENWEATHER_API_KEY}&units=metric`
       );
       
-      const { current, hourly, daily, timezone, timezone_offset } = weatherResponse.data;
+      // Format the current weather data
+      const current = {
+        city: cityName,
+        country: sys.country,
+        dt: dt,
+        temp: main.temp,
+        feels_like: main.feels_like,
+        temp_min: main.temp_min,
+        temp_max: main.temp_max,
+        humidity: main.humidity,
+        wind_speed: wind.speed,
+        weather: weather,
+        visibility: visibility,
+        pressure: main.pressure,
+        clouds: clouds.all,
+        timezone: timezone
+      };
       
-      // Format the data
+      // Process hourly forecast - 5 day forecast in 3-hour steps (we'll take the first 24 hours)
+      const hourly = forecastResponse.data.list.slice(0, 8).map((item: any) => ({
+        dt: item.dt,
+        temp: item.main.temp,
+        weather: item.weather,
+        pop: item.pop
+      }));
+      
+      // Process daily forecast - we'll group by day and take max/min temps
+      const dailyMap = new Map();
+      
+      forecastResponse.data.list.forEach((item: any) => {
+        const date = new Date(item.dt * 1000);
+        const dayKey = `${date.getFullYear()}-${date.getMonth()}-${date.getDate()}`;
+        
+        if (!dailyMap.has(dayKey)) {
+          dailyMap.set(dayKey, {
+            dt: item.dt,
+            temp: {
+              day: item.main.temp,
+              min: item.main.temp_min,
+              max: item.main.temp_max,
+              night: item.main.temp,
+              eve: item.main.temp,
+              morn: item.main.temp
+            },
+            weather: item.weather,
+            pop: item.pop
+          });
+        } else {
+          const existing = dailyMap.get(dayKey);
+          // Update min/max
+          existing.temp.min = Math.min(existing.temp.min, item.main.temp_min);
+          existing.temp.max = Math.max(existing.temp.max, item.main.temp_max);
+          
+          // Set different times of day based on hour
+          const hour = date.getHours();
+          if (hour >= 6 && hour < 12) {
+            existing.temp.morn = item.main.temp;
+          } else if (hour >= 12 && hour < 18) {
+            existing.temp.day = item.main.temp;
+          } else if (hour >= 18 && hour < 22) {
+            existing.temp.eve = item.main.temp;
+          } else {
+            existing.temp.night = item.main.temp;
+          }
+          
+          // Update pop to the highest probability
+          if (item.pop > existing.pop) {
+            existing.pop = item.pop;
+            existing.weather = item.weather; // Use weather from the time with highest precipitation chance
+          }
+        }
+      });
+      
+      const daily = Array.from(dailyMap.values()).slice(0, 5);
+      
+      // Combine the data
       const formattedData = {
-        current: {
-          city: cityName,
-          country,
-          dt: current.dt,
-          temp: current.temp,
-          feels_like: current.feels_like,
-          temp_min: daily[0].temp.min,
-          temp_max: daily[0].temp.max,
-          humidity: current.humidity,
-          wind_speed: current.wind_speed,
-          weather: current.weather,
-          visibility: current.visibility,
-          pressure: current.pressure,
-          uvi: current.uvi,
-          clouds: current.clouds,
-          timezone: timezone_offset
-        },
-        hourly: hourly.slice(0, 24).map((hour: any) => ({
-          dt: hour.dt,
-          temp: hour.temp,
-          weather: hour.weather,
-          pop: hour.pop
-        })),
-        daily: daily.slice(0, 5).map((day: any) => ({
-          dt: day.dt,
-          temp: day.temp,
-          weather: day.weather,
-          pop: day.pop
-        })),
+        current,
+        hourly,
+        daily,
         lastUpdated: Date.now()
       };
       
@@ -133,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(formattedData);
       
       // Add to recent searches (don't await to not delay response)
-      storage.addRecentSearch({ city: cityName, country }).catch(err => {
+      storage.addRecentSearch({ city: cityName, country: sys.country }).catch(err => {
         console.error("Failed to save recent search:", err);
       });
     } catch (error) {
