@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Header } from "@/components/Header";
 import { SearchSection } from "@/components/SearchSection";
 import { CurrentWeather } from "@/components/CurrentWeather";
@@ -12,29 +12,21 @@ import { useWeatherData, useRecentSearches } from "@/hooks/useWeather";
 
 export default function Home() {
   const [searchCity, setSearchCity] = useState<string | null>(null);
-  const { loading, setLoading, error, setError } = useWeather();
+  const { loading, error } = useWeather();
   
   // Fetch recent searches on mount
-  const recentSearchesQuery = useRecentSearches();
+  useRecentSearches();
   
   // Fetch weather data when a city is searched
-  const { data: weatherData, refetch: refetchWeather, isLoading, isError } = useWeatherData(searchCity);
-  
-  // Set loading state based on query status
-  useEffect(() => {
-    setLoading(isLoading);
-  }, [isLoading, setLoading]);
+  const { data: weatherData, refetch: refetchWeather } = useWeatherData(searchCity);
   
   // Handle search
   const handleSearch = (city: string) => {
-    setLoading(true);
     setSearchCity(city);
   };
   
   // Retry fetching weather data
   const handleRetry = () => {
-    setLoading(true);
-    setError(null);
     refetchWeather();
   };
   
