@@ -4,11 +4,13 @@ import { SearchSection } from "@/components/SearchSection";
 import { CurrentWeather } from "@/components/CurrentWeather";
 import { HourlyForecast } from "@/components/HourlyForecast";
 import { DailyForecast } from "@/components/DailyForecast";
+import { HistoricalWeather } from "@/components/HistoricalWeather";
 import { Footer } from "@/components/Footer";
 import { LoadingState } from "@/components/LoadingState";
 import { ErrorState } from "@/components/ErrorState";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useWeather } from "@/context/WeatherContext";
-import { useWeatherData, useRecentSearches } from "@/hooks/useWeather";
+import { useWeatherData, useHistoricalWeatherData, useRecentSearches } from "@/hooks/useWeather";
 
 export default function Home() {
   const [searchCity, setSearchCity] = useState<string | null>(null);
@@ -19,6 +21,12 @@ export default function Home() {
   
   // Fetch weather data when a city is searched
   const { data: weatherData, refetch: refetchWeather } = useWeatherData(searchCity);
+  
+  // Fetch historical weather data (5 days by default)
+  const { 
+    data: historicalData, 
+    isLoading: historicalLoading 
+  } = useHistoricalWeatherData(searchCity);
   
   // Handle search
   const handleSearch = (city: string) => {
@@ -46,6 +54,22 @@ export default function Home() {
             <CurrentWeather data={weatherData.current} lastUpdated={weatherData.lastUpdated} />
             <HourlyForecast data={weatherData.hourly} timezone={weatherData.current.timezone} />
             <DailyForecast data={weatherData.daily} />
+            
+            {/* Historical Weather Data Section */}
+            {historicalLoading ? (
+              <div className="mt-8">
+                <Skeleton className="h-10 w-1/3 mb-4" />
+                <Skeleton className="h-[400px] w-full mb-4" />
+                <Skeleton className="h-8 w-1/4 mb-4" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                </div>
+              </div>
+            ) : historicalData ? (
+              <HistoricalWeather data={historicalData} />
+            ) : null}
           </>
         ) : (
           <div className="flex justify-center items-center p-10">

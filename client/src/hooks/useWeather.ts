@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { useWeather } from "@/context/WeatherContext";
-import { type Forecast, type RecentSearch } from "@shared/schema";
+import { type Forecast, type RecentSearch, type HistoricalWeather } from "@shared/schema";
 import { useEffect } from "react";
 
 export function useWeatherData(city: string | null) {
@@ -61,6 +61,55 @@ export function useWeatherData(city: string | null) {
       setLoading(false);
     }
   }, [result.isSuccess, result.isError, setLoading]);
+  
+  return result;
+}
+
+export function useHistoricalWeatherData(city: string | null, days: number = 5) {
+  const { setError } = useWeather();
+
+  const result = useQuery<HistoricalWeather | null, Error>({
+    queryKey: ['/api/historical-weather', city, days],
+    queryFn: async ({ queryKey }) => {
+      const [_, cityParam, daysParam] = queryKey;
+      if (!cityParam) return null;
+      
+      const res = await fetch(`/api/historical-weather?city=${encodeURIComponent(cityParam as string)}&days=${daysParam}`, {
+        credentials: 'include'
+      });
+      
+      if (!res.ok) {
+        let errorMessage = `Error ${res.status}: Failed to fetch historical weather data`;
+        
+        try {
+          const errorData = await res.json();
+          
+          if (errorData.error === "api_key_missing") {
+            errorMessage = "OpenWeather API key is required. Please set up an API key to fetch historical weather data.";
+          } else if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+        } catch (e) {
+          // If we can't parse JSON, use the default error message
+        }
+        
+        throw new Error(errorMessage);
+      }
+      
+      return res.json() as Promise<HistoricalWeather>;
+    },
+    enabled: !!city,
+    refetchOnWindowFocus: false,
+    staleTime: 1000 * 60 * 10, // 10 minutes
+    gcTime: 1000 * 60 * 20, // 20 minutes
+  });
+
+  // Handle errors
+  useEffect(() => {
+    if (result.isError && result.error instanceof Error) {
+      setError(result.error.message);
+    }
+  }, [result.isError, result.error, setError]);
   
   return result;
 }

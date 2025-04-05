@@ -86,6 +86,29 @@ export const dailyForecastSchema = z.object({
   pop: z.number().optional()
 });
 
+// Historical weather data schema
+export const historicalWeatherItemSchema = z.object({
+  dt: z.number(), // timestamp
+  temp: z.number(),
+  feels_like: z.number(),
+  humidity: z.number(),
+  wind_speed: z.number(),
+  pressure: z.number(),
+  weather: z.array(z.object({
+    id: z.number(),
+    main: z.string(),
+    description: z.string(),
+    icon: z.string()
+  }))
+});
+
+export const historicalWeatherSchema = z.object({
+  city: z.string(),
+  country: z.string().optional(),
+  data: z.array(historicalWeatherItemSchema),
+  lastUpdated: z.number()
+});
+
 export const forecastSchema = z.object({
   current: currentWeatherSchema,
   hourly: z.array(hourlyForecastSchema),
@@ -96,4 +119,6 @@ export const forecastSchema = z.object({
 export type CurrentWeather = z.infer<typeof currentWeatherSchema>;
 export type HourlyForecast = z.infer<typeof hourlyForecastSchema>;
 export type DailyForecast = z.infer<typeof dailyForecastSchema>;
+export type HistoricalWeatherItem = z.infer<typeof historicalWeatherItemSchema>;
+export type HistoricalWeather = z.infer<typeof historicalWeatherSchema>;
 export type Forecast = z.infer<typeof forecastSchema>;
