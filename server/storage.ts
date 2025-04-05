@@ -1,5 +1,7 @@
 import { recentSearches, type RecentSearch, type InsertRecentSearch } from "@shared/schema";
 import { format } from "date-fns";
+import { db } from "./db";
+import { eq, sql, desc } from "drizzle-orm";
 
 export interface IStorage {
   getRecentSearches(limit?: number): Promise<RecentSearch[]>;
@@ -7,68 +9,61 @@ export interface IStorage {
   clearRecentSearches(): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private searches: Map<number, RecentSearch>;
-  currentId: number;
-
-  constructor() {
-    this.searches = new Map();
-    this.currentId = 1;
-  }
-
+export class DatabaseStorage implements IStorage {
   async getRecentSearches(limit: number = 5): Promise<RecentSearch[]> {
-    const searchArray = Array.from(this.searches.values());
-    
-    // Sort by timestamp (newest first)
-    const sortedSearches = searchArray.sort((a, b) => {
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    });
-    
-    // Limit the number of results
-    return sortedSearches.slice(0, limit);
+    // Get searches sorted by timestamp (newest first)
+    return await db
+      .select()
+      .from(recentSearches)
+      .orderBy(desc(recentSearches.timestamp))
+      .limit(limit);
   }
 
   async addRecentSearch(insertSearch: InsertRecentSearch): Promise<RecentSearch> {
-    const id = this.currentId++;
-    const timestamp = new Date();
-    
-    const search: RecentSearch = { 
-      id, 
-      ...insertSearch, 
-      timestamp 
-    };
-    
-    // Check if this city is already in recent searches
-    const existingSearches = Array.from(this.searches.values());
-    const existingSearchIndex = existingSearches.findIndex(
-      s => s.city.toLowerCase() === insertSearch.city.toLowerCase()
-    );
+    // First check if this city is already in recent searches
+    const existingSearch = await db
+      .select()
+      .from(recentSearches)
+      .where(eq(sql`LOWER(${recentSearches.city})`, insertSearch.city.toLowerCase()))
+      .limit(1);
     
     // If it exists, remove it (we'll add the updated one)
-    if (existingSearchIndex !== -1) {
-      const existingSearch = existingSearches[existingSearchIndex];
-      this.searches.delete(existingSearch.id);
+    if (existingSearch.length > 0) {
+      await db
+        .delete(recentSearches)
+        .where(eq(recentSearches.id, existingSearch[0].id));
     }
     
-    this.searches.set(id, search);
+    // Add the new search
+    const [newSearch] = await db
+      .insert(recentSearches)
+      .values(insertSearch)
+      .returning();
     
-    // Maintain at most 5 recent searches
-    if (this.searches.size > 5) {
-      // Find oldest search
-      const oldestSearch = existingSearches
-        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())[0];
+    // Keep only the most recent 5 searches
+    const allSearches = await db
+      .select()
+      .from(recentSearches)
+      .orderBy(desc(recentSearches.timestamp));
+    
+    if (allSearches.length > 5) {
+      // Get IDs of searches to keep (the 5 most recent)
+      const idsToKeep = allSearches
+        .slice(0, 5)
+        .map(search => search.id);
       
-      if (oldestSearch) {
-        this.searches.delete(oldestSearch.id);
-      }
+      // Delete all searches except the ones we want to keep
+      await db
+        .delete(recentSearches)
+        .where(sql`id NOT IN (${idsToKeep.join(', ')})`);
     }
     
-    return search;
+    return newSearch;
   }
 
   async clearRecentSearches(): Promise<void> {
-    this.searches.clear();
+    await db.delete(recentSearches);
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
