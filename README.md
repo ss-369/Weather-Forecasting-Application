@@ -82,11 +82,12 @@ npm run dev
 The application will be available at [http://localhost:5000](http://localhost:5000)
 
 ## Screenshots
-![5 Day Forecast](screenshots/5_day_forecast.png)
-![Daily Summaries](screenshots/Daily_summaries.png)
 ![Enter City](screenshots/enter_city.png)
-![Historical Weather](screenshots/Historical_weather.png)
 ![Today's Forecast](screenshots/Todays_Forecast.png)
+
+![Daily Summaries](screenshots/Daily_summaries.png)
+![Historical Weather](screenshots/Historical_weather.png)
+![5 Day Forecast](screenshots/5_day_forecast.png)
 
 ## Project Structure
 
