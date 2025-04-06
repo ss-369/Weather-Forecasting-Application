@@ -1,8 +1,8 @@
-# Weather Forecasting Application
+# 🌦️ Weather Forecasting Application
 
 A real-time weather forecasting application with current conditions and 5-day forecasts.
 
-## Features
+## ✨ Features
 
 - Current weather conditions display
 - Hourly forecast (8 hours)
@@ -12,30 +12,30 @@ A real-time weather forecasting application with current conditions and 5-day fo
 - Dark/Light mode theme toggle
 - Responsive design for mobile, tablet, and desktop
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 ### Frontend
-- React
-- TypeScript
-- TanStack React Query
-- Tailwind CSS
-- Shadcn UI
-- Context API for state management
+- ⚛️ React
+- 🔷 TypeScript
+- 🔄 TanStack React Query
+- 🎨 Tailwind CSS
+- 🧩 Shadcn UI
+- 🌐 Context API for state management
 
 ### Backend
-- Node.js & Express
-- PostgreSQL database
-- Drizzle ORM
-- Zod validation
+- 🟢 Node.js & Express
+- 🐘 PostgreSQL database
+- 💧 Drizzle ORM
+- ✅ Zod validation
 
-## Prerequisites
+## 📋 Prerequisites
 
 Before you begin, ensure you have the following installed:
 - Node.js (version 18 or higher)
 - npm (comes with Node.js)
 - PostgreSQL database
 
-## Installation and Setup
+## 🚀 Installation and Setup
 
 Follow these steps to run the application locally:
 
@@ -81,15 +81,19 @@ npm run dev
 
 The application will be available at [http://localhost:5000](http://localhost:5000)
 
+<<<<<<< HEAD
 ## Screenshots
 ![Enter City](screenshots/enter_city.png)
 ![Today's Forecast](screenshots/Todays_Forecast.png)
 ![Historical Weather](screenshots/Historical_weather.png)
+=======
+## 📷 Screenshots
+>>>>>>> 2466329 (Updated Readme)
 ![5 Day Forecast](screenshots/5_day_forecast.png)
 ![Daily Summaries](screenshots/Daily_summaries.png)
 
 
-## Project Structure
+## 📁 Project Structure
 
 - `/client` - Frontend React application
   - `/src/components` - UI components
@@ -102,13 +106,13 @@ The application will be available at [http://localhost:5000](http://localhost:50
 - `/shared` - Shared code between frontend and backend
   - `schema.ts` - Database schema and TypeScript types
 
-## API Endpoints
+## 🔌 API Endpoints
 
 - `GET /api/weather?city={cityName}` - Get weather data for a city
 - `GET /api/recent-searches` - Get recent search history
 - `POST /api/recent-searches` - Add a city to recent searches
 - `DELETE /api/recent-searches` - Clear recent search history
 
-## License
+## 📜 License
 
 [MIT License](LICENSE)
