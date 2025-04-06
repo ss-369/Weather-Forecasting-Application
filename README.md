@@ -85,9 +85,10 @@ The application will be available at [http://localhost:5000](http://localhost:50
 ![Enter City](screenshots/enter_city.png)
 ![Today's Forecast](screenshots/Todays_Forecast.png)
 
-![Daily Summaries](screenshots/Daily_summaries.png)
 ![Historical Weather](screenshots/Historical_weather.png)
 ![5 Day Forecast](screenshots/5_day_forecast.png)
+![Daily Summaries](screenshots/Daily_summaries.png)
+
 
 ## Project Structure
 
