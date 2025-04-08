@@ -1,3 +1,5 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 # 🌦️ Weather Forecasting Application
 
 A real-time weather forecasting application with current conditions and 5-day forecasts.
